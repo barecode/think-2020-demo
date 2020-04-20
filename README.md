@@ -1,4 +1,4 @@
-t IBM THINK 2020 Demo Web Application
+# IBM THINK 2020 Demo Web Application
 
 This web application demonstrates session information as part of a session persistence demo showing IBM Cloud Transformation Advisor tech preview update for 2Q2020. This web application uses a very simple JSP to show session information known by the application server (Open Liberty in this case) and some basic host information, used to demonstrate the routing and failvoer (session replication) aspects.
 
