@@ -1,10 +1,14 @@
+# Deploying to OpenShift with Hazelcast Session Persistence
+
+Instructions to deploy the demo web application to OpenShift using Hazelcast as the session persistence store.
+
 ## Prereqs
 
 1. Build the demo.war from the source project
 
+## Note, instructions beyond this point is incomplete.
 
 
-# Deploying to OpenShift with Hazelcast Session Persistence
 ## Configuring the Cluster
 > Note: all steps assume you are logged in to the cluster on the command line. These steps also require some permissions that aren't normally given by default, see the appendix
 ### Install the OpenLiberty operator
