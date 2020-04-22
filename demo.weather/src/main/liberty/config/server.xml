@@ -1,0 +1,11 @@
+<server description="Sample Liberty server">
+
+  <featureManager>
+    <feature>microProfile-2.2</feature>
+  </featureManager>
+
+  <httpEndpoint host="*" httpPort="${default.http.port}" httpsPort="${default.https.port}"
+                id="defaultHttpEndpoint"/>
+
+  <webApplication location="demo.weather.war" contextRoot="/"/>
+</server>

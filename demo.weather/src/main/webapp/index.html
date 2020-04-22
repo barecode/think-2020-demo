@@ -1,0 +1,24 @@
+<html>
+
+<head>
+  <link href="./css/demo.css" rel="stylesheet">
+</head>
+
+<body>
+  <h1>7-Day Forecast</h1>
+  <main id="main"> Zip Code: <input type="number" id="zipCode" value="78613">
+    <button type="button" onclick="getCoordinatesAndCity()">Get Forecast (browser-side)</button>
+    <button type="button" onclick="getWeeklyForecastBackend()">Get Forecast (server-side)</button>
+
+    <div id="city" style="display: none">City:</div>
+    <div id="coordinates" style="display: none">Coordinates:</div>
+    <div id="cwa" style="display: none">Center Weather Advisory:</div>
+
+    <br>
+
+  </main>
+
+  <script src="./js/demo.js" type="text/javascript"></script>
+</body>
+
+</html>
