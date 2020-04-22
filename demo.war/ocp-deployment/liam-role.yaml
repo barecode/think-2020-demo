@@ -1,0 +1,13 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: think-demo-hz-role-binding
+  namespace: demo
+subjects:
+  - kind: ServiceAccount
+    name: think-demo-hz
+    namespace: demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: hazelcast-client-role-demo
