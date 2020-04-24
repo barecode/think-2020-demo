@@ -11,7 +11,7 @@ The demo covers using WebSphere Network Deployment's Memory-to-Memory session re
 
 This project uses the OpenLiberty maven plugin for easy use.
 
-To build: `./mvnw install`
+To build: `./mvnw package`
 
 To run: `./mvnw liberty:run`
 
