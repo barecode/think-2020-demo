@@ -1,4 +1,5 @@
 # Assumes the OpenLiberty operator has been installed in your cluster
+# Creates the Pods as well as a ServiceAccount with the metadata.name value
 apiVersion: openliberty.io/v1beta1
 kind: OpenLibertyApplication
 metadata:
