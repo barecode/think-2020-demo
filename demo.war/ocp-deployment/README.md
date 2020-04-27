@@ -8,6 +8,7 @@ Overall flow:
 1. [Deploy Hazelcast](#deploy-hazelcast)
 1. [Build Application Image](#build-application-image)
 1. [Deploy Application](#deploy-application)
+1. [Undeploy Application](#undeploy-application)
 
 ## Prereqs
 
@@ -60,97 +61,72 @@ helm repo update
 ```shell script
 helm install hazelcast-server stable/hazelcast --set securityContext.runAsUser=null,securityContext.fsGroup=null,mancenter.enabled=false
 ```
-1. Ensure all server pods come up successfully. You should see a message in each server pod's logs indicating the server is up and has joined a cluster with the number of members you expect (3, in this case):
+1. Ensure all server pods come up successfully.
 ```
 oc get pods
+NAME                                     READY   STATUS    RESTARTS   AGE
+hazelcast-server-0                       1/1     Running   0          3m16s
+hazelcast-server-1                       1/1     Running   0          2m22s
+hazelcast-server-2                       1/1     Running   0          93s
+```
+1. You should see a message in each server pod's logs indicating the server is up and has joined a cluster with the number of members you expect (3, in this case):
+```
 Members {size:3, ver:3} [
 	Member [10.254.13.227]:5701 - 7c157b26-d91c-4e59-9f07-c366efec6a5e this
 	Member [10.254.16.135]:5701 - 00984992-1fe0-43bd-9236-bbc86985e4f4
 	Member [10.254.20.115]:5701 - b5ff9b62-6f65-4a0d-8d72-ee629156ff8b
 ]
 ```
+1. We will need to establish the correct Kubernetes security role bindings to allow the application to discover Hazelcast, as per these [instructions](https://github.com/hazelcast/hazelcast-kubernetes) - we will do that in the subsequent app deploy step.
 
 ### Build Application Image
 
-The application binary is built from the [source project](..) `mvn package`. The application is currently built at `data/example/modresorts-1.0.war`. Copy the app binary to this directory to the `docker` directory.
+The application binary is built from the [source project](..) `mvn package`. The application is currently built at `target/demo.war`.
 
-1. Copy the app binary to this directory
-1. Review the `server.xml`. No changes are required at this step. The `sessionCache-1.0` feature and all related configuration for Hazelcast will be added by the Liberty docker image during build, so you do not need to include any configuration for that here.
-1. Review the `Dockerfile`. The docker build will copy the server.xml and demo.war file into the image. The Hazelcast client jars are copied from the official Hazelcast Docker image and placed in the expected file location within the application image. Note that the version of the drivers must match the version of the server, so if you have deployed a Hazelcast 3.x cluster, copy the client jars from the appropriate 3.x image.
-1. Build this image, tag it, and push it. You may need to log in to your Docker registry. (commands are executed from the `docker` directory in the project.)
+1. Copy the app binary to this directory.
+1. Review the `server.xml` - it includes the JSP feature and sets the port to 9080. No changes are required at this step. The `sessionCache-1.0` feature and all related configuration for Hazelcast will be added by the Liberty docker image during build, so you do not need to include any configuration for that here.
+1. Review the `Dockerfile`. The docker build will copy the server.xml and demo.war file into the image. The Hazelcast client jars are copied from the official Hazelcast Docker image and placed in the expected file location within the application image. Note that the version of the drivers must match the version of the server - which it should if you followed these instructions and things haven't gotten too out of date :)
+1. Build the application image, tag it, and push it - I use Docker Hub. You may need to log in to your Docker registry. Commands are executed from this directory.
 ```shell script
-HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}')
-PROJECT=<enter OpenShift project name here>
-docker login -u $(oc whoami) -p $(oc whoami -t) $HOST
-docker build -t modresorts:1.0 .
-docker tag modresorts:1.0 $HOST/$PROJECT/modresorts:1.0
-docker push $HOST/$PROJECT/modresorts:1.0
+docker build -t think-demo:1.0 .
+docker tag think-demo:1.0 barecode/think-demo:1.0
+docker push barecode/think-demo:1.0
 ```
 
 ### Deploy Application
-1. Inspect the `openliberty.yaml` file:
-```yaml
-# Assumes the OpenLiberty operator has been installed in your cluster
-apiVersion: openliberty.io/v1beta1
-kind: OpenLibertyApplication
-metadata:
-  name: modresorts
-spec:
-  applicationImage: <image name here>
-  replicas: 2
-  service:
-    type: ClusterIP
-    port: 9080
-  expose: true
-```
-
-1. Update the `applicationImage` field with the name of the image you pushed. 
+1. Review the `openliberty.yaml` file. The deployed application will be called 'think-demo-hz', and a set of Pods and a ServiceAccount will be created. Update the `applicationImage` field with the name of the image you pushed. 
    > If you pushed to the internal OpenShift image registry, alter the repository name so that it reads `image-registry.openshift-image-registry.svc:5000/` instead of the value for `$HOST`. All other portions after `$HOST` remain unchanged.
-
 1. Adjust the amount of replicas to create if you want, but provision at least 2 replicas if you want to demo the session caching in action.
-
-1. Apply the custom resource to deploy the application:
-
+1. Review the `hazelcast-client-role.yaml` - this YAML defines a Role and RoleBinding. The Role grants access to "read" pods in the name space, and the RoleBinding will map that Role to the ServiceAccount (which is created when the app is deployed). This is necessary because the default ServiceAccount permissions on OpenShift restrict the client's ability to discover the running hazelcast pods.
+1. Create the hazelcast client role, and role binding
 ```shell script
-oc apply -f openliberty.yaml
+oc apply -f hazelcast-client-role.yaml
 ```
-
-1. Watch the deployment in the web console. When the pods become ready, you can access the application via the Route that was automatically created. Be sure to add the context root of `resorts` to the end of the URL.
-
-## Appendix A: Required Role Bindings
-
-The default user permissions on OpenShift prevent non-admin users from doing many of the operations required by this process. The following role bindings will likely need to be added to the user doing the deployment. Note that the open-liberty-operator-ol-liberty-ns role won't exist until the corresponding operator is installed in the project/namespace the user is working in:
-* `admin` role for the namespace the user is working in
-* `view` role for all namespaces where resources needed in this tutorial live, including the openshift-image-registry
-* `open-liberty-operator-ol-liberty-ns` role for the namespace the user is working in (requires the Open Liberty operator be deployed to watch the namespace the user is working in)
-
-In addition, the default serviceaccount permissions on OpenShift restrict the client's ability to discover the running servers. The following role bindings will need to be added to the serviceaccount the OpenLibertyApplication is deployed under. `namespace` refers to the namespace or project you deployed the OpenLibertyApplication to. Either allow the Open Liberty operator to create the service account and then bind this role to the account (this may require a redeployment to get the pods to pick up the new permissions) or create a serviceaccount with this role bound ahead of time and specify that account in the OpenLibertyApplication yaml file.
-```yaml
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: hazelcast-client-resorts
-  namespace: resorts
-rules:
-  - verbs:
-      - get
-      - watch
-      - list
-    apiGroups:
-      - ''
-    resources:
-      - pods
+1. Apply the custom resource to deploy the application:
+```shell script
+oc apply -f app-deploy.yaml
 ```
+1. Watch the deployment in the Developer console. When the pods become ready, you can access the application via the Route that was automatically created. Be sure to add the context root of `/demo` to the end of the URL.
 
-vi required-role.yaml
-kubectl apply -f required-role.yaml 
+### Undeploy Application
 
+1. To delete the deployed application, delete the OpenLibertyApplication resource by the name specified (think-demo-hz):
+```shell script
+oc delete OpenLibertyApplication think-demo-hz
+```
+1. This operation will cleans up the pods, serviceaccount, etc
 
+## Appendix A: Debug / Inspection Steps
 
-
-Critical docs
-https://github.com/hazelcast/hazelcast-kubernetes#granting-permissions-to-use-kubernetes-api
-
-https://hazelcast.com/blog/how-to-use-embedded-hazelcast-on-kubernetes/
-https://github.com/hazelcast/hazelcast-kubernetes
-
+* Inspect the ServiceAccount in the namespace:
+```shell script
+oc get ServiceAccount
+NAME                    SECRETS   AGE
+builder                 2         21h
+default                 2         21h
+deployer                2         21h
+hazelcast-server        2         20m
+open-liberty-operator   2         22m
+pipeline                2         21h
+think-demo-hz           2         7m44s
+```
