@@ -34,7 +34,7 @@ This step will deploy the Open Liberty Operator to your cluster. If the operator
 
 1. Apply the OpenLibertyApplication Custom Resource Definitions:
    ```shell script
-   oc apply -f https://raw.githubusercontent.com/OpenLiberty/open-liberty-operator/master/deploy/releases/0.3.0/openliberty-   app-crd.yaml
+   oc apply -f https://raw.githubusercontent.com/OpenLiberty/open-liberty-operator/master/deploy/releases/0.3.0/openliberty-app-crd.yaml
    ``` 
 1. Configure the demo project as the namespace for the operator to watch by setting variables to be used later:
    ```shell script
