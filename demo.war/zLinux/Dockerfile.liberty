@@ -1,0 +1,6 @@
+FROM openliberty/open-liberty:full-java13-openj9-ubi
+
+COPY server.xml /config/
+COPY demo.war /config/dropins
+
+RUN /opt/ol/helpers/build/configure.sh

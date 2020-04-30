@@ -1,0 +1,6 @@
+FROM ibmcom/websphere-traditional:latest-ubi
+
+COPY demo.war /work/app/demo.war
+COPY install_app.py /work/config/install_app.py
+
+RUN /work/configure.sh
